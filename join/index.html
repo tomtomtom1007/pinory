@@ -1,0 +1,54 @@
+<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>Pinory 旅への招待</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500&family=Shippori+Mincho:wght@500&family=Zen+Kaku+Gothic+New&display=swap"><link rel="stylesheet" href="../style.css">
+<style>
+.code{font-family:"Cormorant Garamond",serif;font-size:30px;letter-spacing:.12em;color:var(--gold);margin:6px 0 26px}
+.btn{display:block;text-align:center;text-decoration:none;font-family:"Zen Kaku Gothic New",sans-serif;font-size:15px;letter-spacing:.12em;padding:15px 18px;margin:0 0 12px;border:1px solid var(--ink);color:var(--ink)}
+.btn.primary{background:var(--ink);color:var(--paper)}
+[data-lang]{display:none}
+</style></head>
+<body><main>
+<p class="eyebrow">Invitation</p>
+
+<div data-lang="ja">
+<h1>旅への、招待です</h1>
+<div class="rule"></div>
+<p>切符のQRコードから来てくださって、ありがとうございます。Pinory をひらくと、この旅の仲間に加われます。行き先や予定、写真を、一緒に残せます。</p>
+<p class="small">招待コード</p>
+<p class="code" data-code></p>
+<a class="btn primary" data-open href="#">Pinory でひらく</a>
+<a class="btn" data-store href="#">App Store で Pinory を入れる</a>
+<p class="small">アプリを入れたら、もう一度このQRコードを読み込むか、アプリのメニューの「招待コードで旅に加わる」に上のコードを入れてください。</p>
+<nav><a href="../">Pinory</a><a href="../support/">サポート</a></nav>
+</div>
+
+<div data-lang="en">
+<h1>You’re invited on a journey</h1>
+<div class="rule"></div>
+<p>Thank you for scanning the ticket. Open Pinory to join this trip, and keep the places, plans and photos together.</p>
+<p class="small">Invite code</p>
+<p class="code" data-code></p>
+<a class="btn primary" data-open href="#">Open in Pinory</a>
+<a class="btn" data-store href="#">Get Pinory on the App Store</a>
+<p class="small">Once it’s installed, scan the code again, or enter the code above from “Join a journey with an invite code” in the app’s menu.</p>
+<nav><a href="../">Pinory</a><a href="../en/support/">Support</a></nav>
+</div>
+
+<script>
+// App Store の URL（審査が通ってアプリの Apple ID が決まったら、ここに入れる）
+var APP_STORE_URL = 'https://apps.apple.com/search?term=Pinory';
+var ja = (navigator.language || '').toLowerCase().indexOf('ja') === 0;
+var lang = ja ? 'ja' : 'en';
+document.documentElement.lang = lang;
+document.title = ja ? 'Pinory 旅への招待' : 'Pinory — an invitation';
+document.querySelector('[data-lang="' + lang + '"]').style.display = 'block';
+// 招待コードは英数字12文字だけを受け付ける
+var raw = (new URLSearchParams(location.search).get('c') || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+var code = raw.length === 12 ? raw : '';
+document.querySelectorAll('[data-code]').forEach(function (e) {
+  e.textContent = code ? code.slice(0, 4) + '-' + code.slice(4, 8) + '-' + code.slice(8) : '—';
+});
+document.querySelectorAll('[data-open]').forEach(function (e) {
+  if (code) e.href = 'pinory://join/' + code; else e.style.display = 'none';
+});
+document.querySelectorAll('[data-store]').forEach(function (e) { e.href = APP_STORE_URL; });
+</script>
+</main></body></html>
