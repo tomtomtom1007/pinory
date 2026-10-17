@@ -1,0 +1,103 @@
+<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>Pinory</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500&family=Shippori+Mincho:wght@500;600&family=Zen+Kaku+Gothic+New&display=swap"><link rel="stylesheet" href="../style.css">
+<style>
+body{background:#F7F1E6}
+main{padding-top:0}
+.hero{position:relative;margin:0 -20px 28px;min-height:340px;background:linear-gradient(#0E1322,#2B2537);color:#F7F1E6;display:flex;align-items:flex-end;overflow:hidden}
+.hero img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.75}
+.hero .fade{position:absolute;inset:0;background:linear-gradient(transparent 35%,rgba(14,19,34,.85))}
+.hero .in{position:relative;padding:28px 24px}
+.hero h1{color:#F7F1E6;font-size:28px;margin:8px 0 6px}
+.hero .meta{font-family:"Zen Kaku Gothic New",sans-serif;font-size:13px;color:#ECE2D0}
+.day{margin:34px 0 8px}
+.day .t{font-size:20px;letter-spacing:.06em}
+.stop{display:flex;gap:14px;padding:14px 0;border-bottom:1px solid #E2D7C3}
+.stop .time{width:58px;flex:none;font-family:"Cormorant Garamond",serif;font-size:18px;color:#8A6B37}
+.stop .name{font-size:17px;margin:0}
+.stop .note{font-family:"Zen Kaku Gothic New",sans-serif;font-size:13px;color:#7D7268;margin:4px 0 0}
+.stop .todo{font-family:"Zen Kaku Gothic New",sans-serif;font-size:13px;margin:6px 0 0;color:#2A2433}
+.stop .todo:before{content:"";display:inline-block;width:6px;height:6px;border:1px solid #B8955A;border-radius:50%;margin-right:8px;vertical-align:middle}
+.stop img{width:100%;max-width:280px;border-radius:3px;margin-top:10px;display:block}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+.grid img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:2px}
+.cap{font-family:"Zen Kaku Gothic New",sans-serif;font-size:13px;margin:6px 0 18px;color:#2A2433}
+.cap small{color:#8A6B37;display:block;font-size:11px}
+.cta{margin-top:48px;padding:24px;border:1px solid #E2D7C3;text-align:center}
+.cta a.btn{display:inline-block;margin-top:12px;padding:12px 22px;background:#2A2433;color:#F7F1E6;text-decoration:none;font-family:"Zen Kaku Gothic New",sans-serif;font-size:14px;letter-spacing:.1em}
+#msg{font-family:"Zen Kaku Gothic New",sans-serif;color:#7D7268;margin-top:80px;text-align:center}
+/* このページは紙の色で固定（端末がダークモードでも） */
+:root,:root[data-x]{--paper:#F7F1E6;--ink:#2A2433;--soft:#7D7268;--line:#E2D7C3;--bg:#F7F1E6}
+@media (prefers-color-scheme:dark){:root{--paper:#F7F1E6;--ink:#2A2433;--soft:#7D7268;--line:#E2D7C3;--bg:#F7F1E6}body{background:#F7F1E6;color:#2A2433}}
+</style></head>
+<body><main>
+<div id="msg">…</div>
+<div id="view" hidden></div>
+<script>
+var SUPABASE_URL = 'https://ixjwxircgyiflosgwngq.supabase.co';
+var KEY = 'sb_publishable_Uf5DQYO5kNT9BVTZ6pb2zg_LeEgGma5';
+var APP_STORE_URL = 'https://apps.apple.com/search?term=Pinory';
+var ja = (navigator.language || '').toLowerCase().indexOf('ja') === 0;
+document.documentElement.lang = ja ? 'ja' : 'en';
+var T = ja ? {
+  loading: '旅のページをひらいています', none: 'このページは見つかりませんでした。共有が止められたか、まだ公開前です。',
+  noTime: '時刻なし', someday: '日にちは、まだ', want: 'ここで、したいこと', memories: '思い出',
+  cta: 'この旅は、Pinory で作られています', ctaSub: '旅のしおりと思い出を、ひとつの地球儀に。', get: 'App Store で見る', day: function (n) { return n + '日目'; }
+} : {
+  loading: 'Opening the journey', none: 'This page could not be found. Sharing may have been turned off.',
+  noTime: 'Any time', someday: 'No date yet', want: 'While I’m there', memories: 'Memories',
+  cta: 'This journey was made with Pinory', ctaSub: 'Travel notes and memories, on a single globe.', get: 'View on the App Store', day: function (n) { return 'Day ' + n; }
+};
+var msg = document.getElementById('msg'), view = document.getElementById('view');
+msg.textContent = T.loading;
+function esc(s) { var d = document.createElement('div'); d.textContent = s == null ? '' : String(s); return d.innerHTML; }
+function photo(u) { return u && /^https:\/\//.test(u) ? u : null; }
+function ymd(s) { var d = new Date(s); return ja ? (d.getFullYear() + '年' + (d.getMonth() + 1) + '月' + d.getDate() + '日') : d.toLocaleDateString('en', { year: 'numeric', month: 'short', day: 'numeric' }); }
+function md(d) { return ja ? ((d.getMonth() + 1) + '月' + d.getDate() + '日') : d.toLocaleDateString('en', { month: 'short', day: 'numeric', weekday: 'short' }); }
+function hm(s) { var d = new Date(s); return ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2); }
+var token = (new URLSearchParams(location.search).get('t') || '').replace(/[^A-Za-z0-9]/g, '');
+if (token.length < 20) { msg.textContent = T.none; } else {
+  fetch(SUPABASE_URL + '/rest/v1/rpc/shared_trip', {
+    method: 'POST', headers: { apikey: KEY, Authorization: 'Bearer ' + KEY, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ p_token: token })
+  }).then(function (r) { return r.json(); }).then(function (d) {
+    if (!d || !d.trip) { msg.textContent = T.none; return; }
+    var t = d.trip, h = '';
+    document.title = t.title + ' — Pinory';
+    var cover = photo(t.cover_photo) || (d.places.map(function (p) { return photo(p.photo_url); }).filter(Boolean)[0]) || (d.posts.map(function (p) { return (p.photo_urls || [])[0]; }).filter(Boolean)[0]);
+    var dates = t.start_date ? ymd(t.start_date) + (t.end_date && t.end_date !== t.start_date ? ' — ' + ymd(t.end_date) : '') : '';
+    h += '<div class="hero">' + (cover ? '<img src="' + esc(cover) + '" alt="" onerror="this.remove()">' : '') + '<div class="fade"></div><div class="in"><p class="eyebrow">' + (t.kind === 'date' ? 'Date' : 'Travel Notes') + '</p><h1>' + esc(t.title) + '</h1><div class="meta">' + esc([t.destination, dates].filter(Boolean).join('　')) + '</div></div></div>';
+    // 予定を日ごとに
+    var start = t.start_date ? new Date(t.start_date) : null, groups = {}, order = [];
+    d.places.filter(function (p) { return p.kind === 'planned'; }).forEach(function (p) {
+      var k = p.planned_at ? new Date(p.planned_at).toDateString() : '_';
+      if (!groups[k]) { groups[k] = []; order.push(k); }
+      groups[k].push(p);
+    });
+    order.forEach(function (k, i) {
+      var first = groups[k][0], date = first.planned_at ? new Date(first.planned_at) : null;
+      var n = date && start ? Math.round((new Date(date.toDateString()) - new Date(start.toDateString())) / 864e5) + 1 : i + 1;
+      h += '<div class="day"><p class="eyebrow">' + (date ? 'Day ' + n : 'Someday') + '</p><div class="t">' + (date ? esc(T.day(n)) + '　<span class="small">' + esc(md(date)) + '</span>' : esc(T.someday)) + '</div></div>';
+      groups[k].forEach(function (p) {
+        var time = !p.planned_at ? '—' : p.planned_no_time ? '<small style="font-family:Zen Kaku Gothic New,sans-serif;font-size:11px">' + T.noTime + '</small>' : hm(p.planned_at) + (p.planned_end_at ? '<br><small>– ' + hm(p.planned_end_at) + '</small>' : '');
+        h += '<div class="stop"><div class="time">' + time + '</div><div><p class="name">' + esc(p.name) + '</p>' + (p.note ? '<p class="note">' + esc(p.note) + '</p>' : '');
+        (p.todos || []).forEach(function (td) { if (td.text) h += '<p class="todo">' + esc(td.text) + '</p>'; });
+        if (photo(p.photo_url)) h += '<img src="' + esc(p.photo_url) + '" alt="" loading="lazy" onerror="this.remove()">';
+        h += '</div></div>';
+      });
+    });
+    // 思い出
+    var posts = d.posts.filter(function (p) { return (p.photo_urls || []).length || p.caption; });
+    if (posts.length) {
+      h += '<div class="day"><p class="eyebrow">Memories</p><div class="t">' + esc(T.memories) + '</div></div>';
+      posts.forEach(function (p) {
+        var urls = (p.photo_urls || []).filter(photo).slice(0, 4);
+        if (urls.length) h += '<div class="grid">' + urls.map(function (u) { return '<img src="' + esc(u) + '" alt="" loading="lazy" onerror="this.remove()">'; }).join('') + '</div>';
+        h += '<p class="cap"><small>' + esc([ymd(p.taken_at), p.place].filter(Boolean).join('　')) + '</small>' + esc(p.caption) + '</p>';
+      });
+    }
+    h += '<div class="cta"><p class="eyebrow">Pinory</p><p>' + esc(T.cta) + '</p><p class="small">' + esc(T.ctaSub) + '</p><a class="btn" href="' + APP_STORE_URL + '">' + esc(T.get) + '</a></div>';
+    view.innerHTML = h; view.hidden = false; msg.hidden = true;
+  }).catch(function () { msg.textContent = T.none; });
+}
+</script>
+</main></body></html>
